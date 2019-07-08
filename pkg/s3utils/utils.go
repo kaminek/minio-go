@@ -95,8 +95,11 @@ var amazonS3HostDot = regexp.MustCompile(`^s3\.(.*?)\.amazonaws\.com$`)
 // amazonS3ChinaHost - regular expression used to determine if the arg is s3 china host.
 var amazonS3ChinaHost = regexp.MustCompile(`^s3\.(cn.*?)\.amazonaws\.com\.cn$`)
 
-// GetRegionFromURL - returns a region from url host.
-func GetRegionFromURL(endpointURL url.URL) string {
+// scalewayS3HostDot - regular expression used to determine if an arg is s3 host in . style.
+var scalewayS3HostDot = regexp.MustCompile(`^s3\.(.*?)\.scw\.cloud$`)
+
+// GetAWSRegionFromURL - returns a region from url host.
+func GetAWSRegionFromURL(endpointURL url.URL) string {
 	if endpointURL == sentinelURL {
 		return ""
 	}
@@ -125,12 +128,23 @@ func GetRegionFromURL(endpointURL url.URL) string {
 	return ""
 }
 
+// GetRegionFromURL - returns a region from url host.
+func GetRegionFromURL(endpointURL url.URL) string {
+	AWSregion := GetAWSRegionFromURL(endpointURL)
+	// Other endpoint region
+	SCWregion := scalewayS3HostDot.FindStringSubmatch(endpointURL.Host)
+	if len(SCWregion) > 1 {
+		return SCWregion[1]
+	}
+	return AWSregion
+}
+
 // IsAmazonEndpoint - Match if it is exactly Amazon S3 endpoint.
 func IsAmazonEndpoint(endpointURL url.URL) bool {
 	if endpointURL.Host == "s3-external-1.amazonaws.com" || endpointURL.Host == "s3.amazonaws.com" {
 		return true
 	}
-	return GetRegionFromURL(endpointURL) != ""
+	return GetAWSRegionFromURL(endpointURL) != ""
 }
 
 // IsAmazonGovCloudEndpoint - Match if it is exactly Amazon S3 GovCloud endpoint.
